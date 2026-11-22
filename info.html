@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Informações — Almoxarifado da Piramba</title>
+  <meta name="theme-color" content="#1f3b4d">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="stylesheet" href="css/app.css">
+  <style>
+    .doc { max-width: 760px; margin: 0 auto; padding: 14px 16px 60px; }
+    .doc section { background: #fff; border: 1px solid var(--linha); border-radius: var(--raio); padding: 4px 18px 14px; margin-top: 14px; box-shadow: var(--sombra); scroll-margin-top: 80px; }
+    .doc h2 { font-size: 18px; color: var(--marca); margin: 16px 0 8px; }
+    .doc h3 { font-size: 15px; margin: 14px 0 4px; }
+    .doc p, .doc li { color: #33424e; }
+    .doc ol, .doc ul { padding-left: 20px; }
+    .indice { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    .voltar { color: #fff; display: inline-flex; align-items: center; gap: 4px; font-size: 14px; opacity: .9; }
+  </style>
+</head>
+<body>
+  <header class="topo"><div class="marca"><img src="icons/icon-192.png" alt="" width="32" height="32"><div><strong>Almoxarifado da Piramba</strong><span><a class="voltar" href="./">‹ Voltar ao aplicativo</a></span></div></div></header>
+  <main class="doc">
+    <nav class="indice">
+      <a class="chip" href="#manual">Manual</a><a class="chip" href="#termos">Termos de uso</a><a class="chip" href="#privacidade">Privacidade</a>
+      <a class="chip" href="#licenca">Licença</a><a class="chip" href="#creditos">Créditos</a><a class="chip" href="#versao">Versão</a>
+    </nav>
+
+    <section id="manual">
+      <h2>Manual de uso</h2>
+      <h3>1. Primeiro acesso</h3>
+      <ol>
+        <li>Abra o endereço do aplicativo no Chrome do celular e toque em <b>Entrar com Google</b>.</li>
+        <li>A primeira pessoa cria o almoxarifado. As demais entram com o <b>código de convite</b> (em Ajustes › Convidar pelo WhatsApp). Limite: 5 pessoas.</li>
+        <li>Para usar como aplicativo: no Chrome, menu <b>⋮</b> › <b>Adicionar à tela inicial</b> (ou <b>Instalar app</b>).</li>
+      </ol>
+      <h3>2. Cadastrar itens</h3>
+      <ol>
+        <li>Toque em <b>Adicionar</b>, informe nome, categoria, unidade e quantidade. As categorias podem ser criadas, renomeadas e reordenadas em <b>Ajustes</b>.</li>
+        <li>Na validade, informe a data <b>ou</b> marque <b>Sem validade</b> (ferramentas e utensílios já vêm marcados).</li>
+        <li>Se a quantidade for maior que 1, o app pergunta se <b>todas têm a mesma validade</b>. Responda <b>Sim</b> para digitar a data uma vez só, ou <b>Não</b> para distribuir as unidades entre datas diferentes.</li>
+        <li>Se o nome já existir, as unidades são somadas ao item existente, cada uma na sua validade.</li>
+      </ol>
+      <h3>3. Usar e repor</h3>
+      <ul>
+        <li>Toque no item para ver o total e a quantidade por validade. Use <b>−</b> ao consumir e <b>+</b> para acrescentar.</li>
+        <li>Toque na data de uma validade para corrigi-la, se tiver sido digitada errada.</li>
+        <li>Em <b>Editar dados</b> é possível definir a quantidade mínima e registrar com quem está um item emprestado.</li>
+      </ul>
+      <h3>4. Alertas</h3>
+      <p>O <b>Painel</b> mostra vencidos e o que vence nos prazos definidos em Ajustes (padrão: 7 e 30 dias).</p>
+      <h3>5. Lista de compras</h3>
+      <ol>
+        <li>Na aba <b>Compras</b>, o app sugere os itens que acabaram ou estão abaixo do mínimo. Nada entra na lista sozinho: marque os que quer comprar e ajuste a quantidade.</li>
+        <li>Use <b>Item do estoque</b> para incluir outros itens já cadastrados (mesmo os que não estão acabando) e <b>Item novo</b> para algo que ainda não está no estoque. Também é possível incluir pela tela de cada item.</li>
+        <li>Toque em <b>Gerar lista</b> para ver a lista pronta, organizada por categoria, e <b>compartilhar</b> ou <b>baixar</b> em PDF ou TXT.</li>
+        <li>A lista é a mesma para todos da casa e fica salva até alguém tocar em <b>Limpar lista</b>. As compras feitas são registradas no estoque pelo botão <b>Adicionar</b>.</li>
+      </ol>
+      <h3>6. Sem internet</h3>
+      <p>O app continua funcionando sem conexão e envia as alterações quando a internet voltar. Se duas pessoas alterarem o mesmo dado ao mesmo tempo, prevalece a última alteração (as quantidades são somadas corretamente).</p>
+      <h3>7. Cópia de segurança</h3>
+      <p>Em Ajustes › <b>Baixar cópia de segurança</b> é gerado um arquivo com todos os itens, validades e histórico.</p>
+    </section>
+
+    <section id="termos">
+      <h2>Termos de uso</h2>
+      <p>O Almoxarifado da Piramba é um aplicativo de uso pessoal e familiar, sem finalidade comercial, disponibilizado por Felippe Alvarez às pessoas por ele convidadas.</p>
+      <ul>
+        <li>O acesso depende de convite e de conta Google. O titular pode remover participantes a qualquer tempo.</li>
+        <li>Os alertas de validade são um auxílio de organização e dependem das datas informadas pelos usuários. Confira sempre a embalagem antes de consumir qualquer produto; o aplicativo não substitui essa verificação.</li>
+        <li>O aplicativo é fornecido no estado em que se encontra, sem garantia de disponibilidade contínua ou de ausência de erros. Recomenda-se baixar cópias de segurança periodicamente.</li>
+        <li>É vedado usar o aplicativo para fins ilícitos ou tentar acessar dados de outros almoxarifados.</li>
+      </ul>
+    </section>
+
+    <section id="privacidade">
+      <h2>Política de privacidade</h2>
+      <h3>Dados tratados</h3>
+      <ul>
+        <li>Da conta Google: nome, e-mail e identificador, usados apenas para login e para mostrar quem fez cada alteração.</li>
+        <li>Do almoxarifado: itens, quantidades, validades, categorias, observações e histórico de movimentações.</li>
+      </ul>
+      <h3>Onde ficam</h3>
+      <p>Os dados são armazenados no Google Firebase (Authentication e Cloud Firestore), em projeto controlado pelo titular, e em cache no próprio aparelho para uso off-line. Só os membros do almoxarifado têm acesso, conforme regras de segurança do banco de dados.</p>
+      <h3>Compartilhamento</h3>
+      <p>Os dados não são vendidos nem compartilhados com terceiros, exceto o Google como provedor da infraestrutura. Não há publicidade nem rastreamento.</p>
+      <h3>Seus direitos</h3>
+      <p>Qualquer participante pode sair do almoxarifado em Ajustes. Para excluir definitivamente seus dados, fale com o titular. O tratamento observa a Lei nº 13.709/2018 (LGPD), no que couber a um uso doméstico.</p>
+    </section>
+
+    <section id="licenca">
+      <h2>Licença e direitos autorais</h2>
+      <p>© 2026 Felippe Alvarez. Todos os direitos reservados.</p>
+      <p>Uso pessoal e familiar, sem licença para copiar, modificar, distribuir ou explorar comercialmente o código, o nome ou a identidade visual sem autorização escrita do titular. A hospedagem do código em repositório público não implica licença a terceiros. Texto completo no arquivo LICENSE do repositório.</p>
+    </section>
+
+    <section id="creditos">
+      <h2>Créditos</h2>
+      <ul>
+        <li>Concepção e direção: Felippe Alvarez.</li>
+        <li>Desenvolvimento: Felippe Alvarez, com assistência do Claude (Anthropic).</li>
+        <li>Firebase JavaScript SDK (Google) — licença Apache 2.0.</li>
+        <li>Ícones e identidade visual: criação própria.</li>
+        <li>Hospedagem: GitHub Pages.</li>
+      </ul>
+    </section>
+
+    <section id="versao">
+      <h2>Versão</h2>
+      <p><b>1.2.0</b> — 22/11/2026. “Locais de guarda” substituídos por categorias editáveis em Ajustes (a ordem definida vale para o app e para a lista de compras). Modo demonstração com itens simulados.</p>
+      <p><b>1.1.0</b> — 22/11/2026. Lista de compras refeita: sugestões para marcar, inclusão de itens do estoque e de itens novos, lista compartilhada entre a casa e geração em PDF ou TXT para baixar ou compartilhar.</p>
+      <p><b>1.0.0</b> — 22/11/2026. Primeira versão: cadastro com validade por lote, alertas no painel, lista de compras, convites, histórico, uso off-line e cópia de segurança.</p>
+    </section>
+  </main>
+</body>
+</html>
