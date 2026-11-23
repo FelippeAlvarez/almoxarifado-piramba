@@ -38,6 +38,39 @@ const ICON = {
   zap: '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-3.9-4.7-4.1-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.1.1.3 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.7 1.2 1.6 2 1.1 1 2 1.3 2.3 1.4.3.1.4.1.6-.1l.8-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.6-.1 1.2z"/></svg>',
 };
 
+// ---------- mensagens de erro em português ----------
+const ERROS = {
+  'auth/configuration-not-found': 'O login com Google não está ativado no Firebase (Authentication › Método de login › Google).',
+  'auth/operation-not-allowed': 'O login com Google não está ativado no Firebase (Authentication › Método de login › Google).',
+  'auth/unauthorized-domain': 'Este endereço não está autorizado no Firebase (Authentication › Configurações › Domínios autorizados).',
+  'auth/network-request-failed': 'Sem conexão com a internet. Verifique a rede e tente de novo.',
+  'auth/popup-blocked': 'O navegador bloqueou a janela de login. Permita pop-ups para este site e tente de novo.',
+  'auth/too-many-requests': 'Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.',
+  'auth/user-disabled': 'Esta conta foi desativada no Firebase.',
+  'auth/internal-error': 'Erro interno no login. Feche o app, abra de novo e tente outra vez.',
+  'auth/web-storage-unsupported': 'O navegador está bloqueando o armazenamento de dados. Desative o modo anônimo e tente de novo.',
+  'permission-denied': 'Sem permissão para esta operação. Confira se você ainda faz parte do almoxarifado e se as regras do Firestore foram publicadas.',
+  'unavailable': 'Servidor indisponível ou sem internet. As alterações serão enviadas quando a conexão voltar.',
+  'resource-exhausted': 'Limite gratuito diário do Firebase atingido. Tente novamente amanhã.',
+  'failed-precondition': 'O banco de dados não está pronto. Confira no Firebase se o Firestore foi criado.',
+  'not-found': 'Registro não encontrado. Ele pode ter sido apagado por outra pessoa.',
+};
+function traduzErro(e) {
+  if (!e) return 'Ocorreu um erro. Tente novamente.';
+  if (e.code && ERROS[e.code]) return ERROS[e.code];
+  const m = String(e.message || '');
+  const cod = Object.keys(ERROS).find((k) => m.includes(k));
+  if (cod) return ERROS[cod];
+  if (/Firebase|auth\/|firestore/i.test(m)) return `Erro do Firebase: ${e.code || m}. Tente novamente; se continuar, envie esta mensagem ao suporte.`;
+  return m || 'Ocorreu um erro. Tente novamente.';
+}
+let ultimoAvisoErro = 0;
+window.addEventListener('almox-erro', (ev) => {
+  if (Date.now() - ultimoAvisoErro < 5000) return; // evita repetir o aviso em sequência
+  ultimoAvisoErro = Date.now();
+  toast(traduzErro(ev.detail));
+});
+
 // ---------- estado ----------
 const S = {
   fase: 'carregando', user: null, casa: null, itens: [], lotes: [], movimentos: [],
@@ -691,7 +724,7 @@ document.addEventListener('click', async (e) => {
     }
   } catch (err) {
     console.error(err);
-    S.erro = err.message || 'Ocorreu um erro. Tente novamente.';
+    S.erro = traduzErro(err);
     if (['criar', 'entrar'].includes(a)) S.fase = 'sem-casa';
     render(); toast(S.erro);
   }

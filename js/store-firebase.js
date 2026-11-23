@@ -14,7 +14,11 @@ import { ALERTAS_PADRAO, CATEGORIAS, APP } from './config.js';
 
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const gerarCodigo = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => ALFABETO[b % ALFABETO.length]).join('');
-const erroSilencioso = (e) => console.error('[Firestore]', e);
+// Erros de gravação em segundo plano: registra e avisa a interface (que mostra um aviso em português).
+const erroSilencioso = (e) => {
+  console.error('[Firestore]', e);
+  try { window.dispatchEvent(new CustomEvent('almox-erro', { detail: e })); } catch { /* sem interface */ }
+};
 
 export function createFirebaseStore(config) {
   const app = initializeApp(config);
