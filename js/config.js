@@ -11,16 +11,16 @@ export const APP = {
   maxMembros: 5,
 };
 
-// Cole aqui os dados do seu projeto Firebase (passo a passo no GUIA).
-// Enquanto "apiKey" começar com "COLE", o app roda em MODO DEMONSTRAÇÃO
-// (dados guardados só neste aparelho, sem sincronizar).
+// Projeto Firebase "almoxarifado-piramba". Estes dados não são senha: só identificam
+// o projeto; a proteção dos dados está nas regras do Firestore (firestore.rules).
+// Para abrir o modo demonstração (exemplos, sem sincronizar), acrescente ?demo ao endereço.
 export const firebaseConfig = {
-  apiKey: 'COLE_AQUI_A_API_KEY',
-  authDomain: '',
-  projectId: '',
-  storageBucket: '',
-  messagingSenderId: '',
-  appId: '',
+  apiKey: 'AIzaSyBCOyY_93yavyAAF2ydCyyHUjUT_TwxzqM',
+  authDomain: 'almoxarifado-piramba-dc6ef.firebaseapp.com',
+  projectId: 'almoxarifado-piramba-dc6ef',
+  storageBucket: 'almoxarifado-piramba-dc6ef.firebasestorage.app',
+  messagingSenderId: '787659790144',
+  appId: '1:787659790144:web:3ca28301dee7b33e380ca5',
 };
 
 // Categorias iniciais (podem ser alteradas em Ajustes).
