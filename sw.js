@@ -1,6 +1,6 @@
 // Almoxarifado da Piramba — service worker (funcionamento off-line)
 // © 2026 Felippe Alvarez. Todos os direitos reservados.
-const CACHE = 'almox-v1.3.1';
+const CACHE = 'almox-v1.4.0';
 const ARQUIVOS = ['./', 'index.html', 'info.html', 'css/app.css', 'js/app.js', 'js/config.js', 'js/store-local.js',
   'js/store-firebase.js', 'js/exporta.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 

@@ -5,7 +5,7 @@
 
 export const APP = {
   nome: 'Almoxarifado da Piramba',
-  versao: '1.3.1',
+  versao: '1.4.0',
   dataVersao: '24/11/2026',
   autor: 'Felippe Alvarez',
   maxMembros: 5,

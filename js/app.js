@@ -26,6 +26,7 @@ function textoPrazo(iso) {
 }
 
 const ICON = {
+  baixar: '<svg viewBox="0 0 24 24"><path d="M11 4h2v8.2l3.3-3.3 1.4 1.4L12 16l-5.7-5.7 1.4-1.4 3.3 3.3zM5 18h14v2H5z"/></svg>',
   compartilhar: '<svg viewBox="0 0 24 24"><path d="M18 16.1c-.8 0-1.4.3-2 .8l-7.1-4.2c.1-.2.1-.5.1-.7s0-.5-.1-.7L16 7.2c.5.5 1.2.8 2 .8 1.7 0 3-1.3 3-3s-1.3-3-3-3-3 1.3-3 3c0 .2 0 .5.1.7L8 9.8C7.5 9.3 6.8 9 6 9c-1.7 0-3 1.3-3 3s1.3 3 3 3c.8 0 1.5-.3 2-.8l7.1 4.2c-.1.2-.1.4-.1.6 0 1.6 1.3 2.9 2.9 2.9s2.9-1.3 2.9-2.9-1.2-2.9-2.8-2.9z"/></svg>',
   painel: '<svg viewBox="0 0 24 24"><path d="M4 13h6V4H4zm0 7h6v-5H4zm10 0h6v-9h-6zm0-16v5h6V4z"/></svg>',
   estoque: '<svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4zm9-1.8L6.2 7.7 12 10.3l5.8-2.6zM5 9.2v6.5l6 2.7v-6.5zm8 9.2l6-2.7V9.2l-6 2.7z"/></svg>',
@@ -147,6 +148,7 @@ const telaLogin = () => `
     <h1>${esc(APP.nome)}</h1>
     <p class="sub">Controle de itens da casa: estoque, validades e compras, compartilhado entre a família.</p>
     <button class="btn primario grande" data-a="login">Entrar com Google</button>
+    ${botaoInstalar('btn grande btn-instalar')}
     ${S.erro ? `<p class="erro">${esc(S.erro)}</p>` : ''}
     <footer class="rodape-login">Versão ${APP.versao} · © 2026 ${esc(APP.autor)} · <a href="info.html#termos">Termos</a> · <a href="info.html#privacidade">Privacidade</a> · <button class="link-inline" data-a="compartilhar-app">Compartilhar</button></footer>
   </div>`;
@@ -189,9 +191,10 @@ function viewPainel(itens) {
   const ord = (arr) => arr.sort((x, y) => x[1].validade.localeCompare(y[1].validade));
   const totUn = itens.length;
 
-  if (!totUn) return `<div class="vazio"><div class="vazio-ico">${ICON.estoque}</div><h2>Almoxarifado vazio</h2><p>Toque em <b>Adicionar</b> para cadastrar o primeiro item.</p></div>`;
+  if (!totUn) return `${faixaInstalar()}<div class="vazio"><div class="vazio-ico">${ICON.estoque}</div><h2>Almoxarifado vazio</h2><p>Toque em <b>Adicionar</b> para cadastrar o primeiro item.</p></div>`;
 
   return `
+    ${faixaInstalar()}
     <section class="kpis">
       ${kpi('vencido', venc.length, 'Vencidos')}
       ${kpi('critico', crit.length, `Vencem em até ${a.critico} dias`)}
@@ -392,6 +395,7 @@ function viewAjustes() {
       ${demo ? '' : '<button class="linha" data-a="logout"><span class="linha-txt"><strong>Sair da conta</strong></span></button>'}
     </div></section>
     <section><h2 class="secao">Sobre</h2><div class="cartao lista">
+      ${instalado() ? '' : `<button class="linha" data-a="instalar"><span class="icone-linha">${ICON.baixar}</span><span class="linha-txt"><strong>Instalar o aplicativo</strong><small>Coloca o ícone na tela inicial do celular</small></span><span class="seta">›</span></button>`}
       <button class="linha" data-a="compartilhar-app"><span class="icone-linha">${ICON.compartilhar}</span><span class="linha-txt"><strong>Compartilhar o aplicativo</strong><small>Envia só o link do app, sem dar acesso aos seus almoxarifados</small></span><span class="seta">›</span></button>
       <a class="linha" href="info.html#manual"><span class="linha-txt"><strong>Manual de uso</strong></span><span class="seta">›</span></a>
       <a class="linha" href="info.html#termos"><span class="linha-txt"><strong>Termos de uso</strong></span><span class="seta">›</span></a>
@@ -400,6 +404,47 @@ function viewAjustes() {
       <a class="linha" href="info.html#creditos"><span class="linha-txt"><strong>Créditos</strong></span><span class="seta">›</span></a>
     </div>
     <p class="versao">${esc(APP.nome)} · versão ${APP.versao} (${APP.dataVersao})<br>© 2026 ${esc(APP.autor)}. Todos os direitos reservados.</p></section>`;
+}
+
+// ---------- instalação do aplicativo (PWA) ----------
+let pedidoInstalacao = null; // evento guardado pelo navegador quando o app pode ser instalado
+const instalado = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const avisoInstalarOculto = () => { try { return localStorage.getItem('almox-ocultar-instalar') === '1'; } catch { return false; } };
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); pedidoInstalacao = e; if (S.fase !== 'carregando') render(); });
+window.addEventListener('appinstalled', () => { pedidoInstalacao = null; toast('Aplicativo instalado na tela inicial'); render(); });
+
+const botaoInstalar = (classe = 'btn') => (instalado() ? '' : `<button class="${classe}" data-a="instalar">${ICON.baixar} Instalar o aplicativo</button>`);
+const faixaInstalar = () => (instalado() || avisoInstalarOculto() ? '' : `
+  <div class="faixa-instalar"><span>${ICON.baixar}</span><div><strong>Instale o app no celular</strong><small>Abre direto da tela inicial, em tela cheia e mais rápido.</small></div>
+  <button class="btn pequeno primario" data-a="instalar">Instalar</button><button class="icone" data-a="ocultar-instalar" aria-label="Dispensar">${ICON.fechar}</button></div>`);
+
+async function instalarApp() {
+  if (pedidoInstalacao) {
+    pedidoInstalacao.prompt();
+    const { outcome } = await pedidoInstalacao.userChoice.catch(() => ({}));
+    pedidoInstalacao = null;
+    if (outcome === 'accepted') toast('Instalando…');
+    render();
+    return;
+  }
+  // Navegador não ofereceu a instalação automática: mostra como fazer manualmente.
+  const ua = navigator.userAgent;
+  const iphone = /iPhone|iPad|iPod/.test(ua);
+  const dentroDeApp = /FBAN|FBAV|Instagram|WhatsApp|Line\/|; wv\)/.test(ua);
+  const samsung = /SamsungBrowser/.test(ua);
+  const firefox = /Firefox/.test(ua);
+  const passos = dentroDeApp
+    ? ['Este link foi aberto dentro de outro aplicativo (WhatsApp, Instagram…), que não permite instalar.', 'Toque no menu <b>⋮</b> desta tela e escolha <b>Abrir no navegador</b> (ou <b>Abrir no Chrome</b>).', 'No navegador, toque de novo em <b>Instalar o aplicativo</b>.']
+    : iphone
+      ? ['No Safari, toque no botão <b>Compartilhar</b> (quadrado com seta para cima).', 'Escolha <b>Adicionar à Tela de Início</b>.', 'Toque em <b>Adicionar</b>.']
+      : samsung
+        ? ['Toque no menu <b>≡</b> do navegador Samsung, no canto inferior.', 'Escolha <b>Adicionar página a</b> › <b>Tela inicial</b>.']
+        : firefox
+          ? ['Toque no menu <b>⋮</b> do Firefox.', 'Escolha <b>Instalar</b> (ou <b>Adicionar à tela inicial</b>).']
+          : ['Toque no menu <b>⋮</b> do navegador, no canto superior direito.', 'Escolha <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.', 'Confirme em <b>Instalar</b>.'];
+  abrirSheet(`${cabSheet('Instalar o aplicativo', 'Este navegador não oferece a instalação automática')}
+    <ol class="passos">${passos.map((p) => `<li>${p}</li>`).join('')}</ol>
+    <p class="ajuda espaco">Depois de instalado, o Almoxarifado abre pelo ícone na tela inicial, como os demais aplicativos.</p>`);
 }
 
 // ---------- compartilhar o aplicativo (só o link, sem dados) ----------
@@ -772,6 +817,8 @@ document.addEventListener('click', async (e) => {
         break;
       case 'almoxarifados': sheetAlmoxarifados(); break;
       case 'compartilhar-app': await compartilharApp(); break;
+      case 'instalar': await instalarApp(); break;
+      case 'ocultar-instalar': try { localStorage.setItem('almox-ocultar-instalar', '1'); } catch { /* sem armazenamento */ } render(); toast('Você pode instalar depois em Ajustes › Sobre'); break;
       case 'copiar-link': {
         try { await navigator.clipboard.writeText(linkApp()); toast('Link copiado'); } catch { toast('Não foi possível copiar. Copie o endereço exibido.'); }
         break;
