@@ -1,4 +1,6 @@
 // Store com Firebase (Auth Google + Firestore com cache off-line).
+// Cada pessoa pode participar de vários almoxarifados (ex.: casa, trabalho, casa de veraneio),
+// cada um com seus próprios membros, itens e lista de compras.
 // © 2026 Felippe Alvarez. Todos os direitos reservados.
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {
@@ -7,7 +9,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-  doc, collection, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit,
+  doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, limit,
   increment, arrayUnion, arrayRemove, writeBatch, serverTimestamp, deleteField,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { ALERTAS_PADRAO, CATEGORIAS, APP } from './config.js';
@@ -28,31 +30,68 @@ export function createFirebaseStore(config) {
   let listener = () => {};
   let user = null;
   let casaId = null;
-  let unsubs = [];
-  const st = { casa: null, itens: [], lotes: [], movimentos: [] };
+  let unsubCasa = [];      // ouvintes do almoxarifado aberto
+  let unsubLista = null;   // ouvinte da lista de almoxarifados da pessoa
+  let listaPronta = false;
+  const st = { casa: null, casas: [], itens: [], lotes: [], movimentos: [] };
 
   const emit = (extra = {}) => listener({ fase: 'pronto', user, ...st, ...extra });
   const col = (nome) => collection(fs, 'casas', casaId, nome);
-  const parar = () => { unsubs.forEach((u) => u()); unsubs = []; };
+  const pararCasa = () => { unsubCasa.forEach((u) => u()); unsubCasa = []; };
+  const pararTudo = () => { pararCasa(); if (unsubLista) unsubLista(); unsubLista = null; };
 
   const mov = (m) => {
     const ref = doc(col('movimentos'));
     setDoc(ref, { ...m, em: Date.now(), uid: user.uid, por: user.nome }).catch(erroSilencioso);
   };
 
+  const salvarAtiva = (id) => setDoc(doc(fs, 'usuarios', user.uid), { casaId: id, nome: user.nome, email: user.email }, { merge: true }).catch(erroSilencioso);
+
   function ouvirCasa(id) {
-    parar();
+    pararCasa();
     casaId = id;
-    unsubs.push(onSnapshot(doc(fs, 'casas', id), (s) => {
-      if (!s.exists() || !(s.data().membros || []).includes(user.uid)) {
-        st.casa = null; emit({ fase: 'sem-casa' }); return;
-      }
+    st.casa = null; st.itens = []; st.lotes = []; st.movimentos = [];
+    emit({ fase: 'carregando' });
+    unsubCasa.push(onSnapshot(doc(fs, 'casas', id), (s) => {
+      if (casaId !== id) return;
+      if (!s.exists() || !(s.data().membros || []).includes(user.uid)) { abrirOutra(id); return; }
       st.casa = { id: s.id, ...s.data() }; emit();
-    }, (e) => { erroSilencioso(e); emit({ fase: 'sem-casa' }); }));
-    unsubs.push(onSnapshot(col('itens'), (s) => { st.itens = s.docs.map((d) => ({ id: d.id, ...d.data() })); emit(); }, erroSilencioso));
-    unsubs.push(onSnapshot(col('lotes'), (s) => { st.lotes = s.docs.map((d) => ({ id: d.id, ...d.data() })); emit(); }, erroSilencioso));
-    unsubs.push(onSnapshot(query(col('movimentos'), orderBy('em', 'desc'), limit(300)),
-      (s) => { st.movimentos = s.docs.map((d) => ({ id: d.id, ...d.data() })); emit(); }, erroSilencioso));
+    }, (e) => { console.warn('[Firestore] almoxarifado indisponível', e.code); abrirOutra(id); }));
+    unsubCasa.push(onSnapshot(col('itens'), (s) => { st.itens = s.docs.map((d) => ({ id: d.id, ...d.data() })); if (st.casa) emit(); }, erroSilencioso));
+    unsubCasa.push(onSnapshot(col('lotes'), (s) => { st.lotes = s.docs.map((d) => ({ id: d.id, ...d.data() })); if (st.casa) emit(); }, erroSilencioso));
+    unsubCasa.push(onSnapshot(query(col('movimentos'), orderBy('em', 'desc'), limit(300)),
+      (s) => { st.movimentos = s.docs.map((d) => ({ id: d.id, ...d.data() })); if (st.casa) emit(); }, erroSilencioso));
+  }
+
+  // O almoxarifado aberto deixou de existir ou a pessoa foi removida: abre outro, se houver.
+  function abrirOutra(idPerdido) {
+    const outra = st.casas.find((c) => c.id !== idPerdido);
+    if (outra) { salvarAtiva(outra.id); ouvirCasa(outra.id); return; }
+    pararCasa(); casaId = null; st.casa = null; emit({ fase: 'sem-casa' });
+  }
+
+  function ouvirListaDeCasas(preferida) {
+    listaPronta = false;
+    unsubLista = onSnapshot(query(collection(fs, 'casas'), where('membros', 'array-contains', user.uid)), (s) => {
+      st.casas = s.docs.map((d) => ({ id: d.id, nome: d.data().nome || APP.nome, membros: (d.data().membros || []).length, criadoPor: d.data().criadoPor }))
+        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+      if (!listaPronta) {
+        listaPronta = true;
+        const alvo = st.casas.find((c) => c.id === preferida) || st.casas[0];
+        if (alvo) { if (alvo.id !== preferida) salvarAtiva(alvo.id); ouvirCasa(alvo.id); } else emit({ fase: 'sem-casa' });
+      } else if (st.casa) emit();
+    }, (e) => { erroSilencioso(e); emit({ fase: 'sem-casa' }); });
+  }
+
+  async function criarDoc(nome) {
+    const ref = doc(collection(fs, 'casas'));
+    const codigo = gerarCodigo();
+    await setDoc(ref, {
+      nome: nome || APP.nome, codigo, membros: [user.uid], membrosInfo: { [user.uid]: user.nome },
+      criadoPor: user.uid, criadoEm: serverTimestamp(), alertas: { ...ALERTAS_PADRAO }, categorias: [...CATEGORIAS],
+    });
+    await setDoc(doc(fs, 'convites', codigo), { casaId: ref.id });
+    return ref.id;
   }
 
   return {
@@ -62,15 +101,13 @@ export function createFirebaseStore(config) {
       listener = cb;
       getRedirectResult(auth).catch(() => {});
       onAuthStateChanged(auth, async (u) => {
-        parar();
-        if (!u) { user = null; emit({ fase: 'login' }); return; }
+        pararTudo();
+        if (!u) { user = null; st.casas = []; emit({ fase: 'login' }); return; }
         user = { uid: u.uid, nome: u.displayName || u.email, email: u.email };
         emit({ fase: 'carregando' });
-        try {
-          const perfil = await getDoc(doc(fs, 'usuarios', u.uid));
-          const id = perfil.exists() ? perfil.data().casaId : null;
-          if (id) ouvirCasa(id); else emit({ fase: 'sem-casa' });
-        } catch (e) { erroSilencioso(e); emit({ fase: 'sem-casa' }); }
+        let preferida = null;
+        try { const p = await getDoc(doc(fs, 'usuarios', u.uid)); preferida = p.exists() ? p.data().casaId : null; } catch (e) { erroSilencioso(e); }
+        ouvirListaDeCasas(preferida);
       });
     },
 
@@ -82,39 +119,35 @@ export function createFirebaseStore(config) {
         else if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') throw e;
       }
     },
-    async logout() { parar(); await signOut(auth); },
+    async logout() { pararTudo(); await signOut(auth); },
+
+    trocarCasa(id) { if (id === casaId) return; salvarAtiva(id); ouvirCasa(id); },
 
     async criarCasa(nome) {
-      const ref = doc(collection(fs, 'casas'));
-      const codigo = gerarCodigo();
-      await setDoc(ref, {
-        nome: nome || APP.nome, codigo, membros: [user.uid], membrosInfo: { [user.uid]: user.nome },
-        criadoPor: user.uid, criadoEm: serverTimestamp(), alertas: { ...ALERTAS_PADRAO }, categorias: [...CATEGORIAS],
-      });
-      await setDoc(doc(fs, 'convites', codigo), { casaId: ref.id });
-      await setDoc(doc(fs, 'usuarios', user.uid), { casaId: ref.id, nome: user.nome, email: user.email });
-      ouvirCasa(ref.id);
+      const id = await criarDoc(nome);
+      salvarAtiva(id); ouvirCasa(id);
     },
 
     async entrarCasa(codigoDigitado) {
       const codigo = String(codigoDigitado || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!codigo) throw new Error('Digite o código de convite.');
       const conv = await getDoc(doc(fs, 'convites', codigo));
       if (!conv.exists()) throw new Error('Código não encontrado. Confira com quem enviou o convite.');
       const id = conv.data().casaId;
+      if (st.casas.some((c) => c.id === id)) { this.trocarCasa(id); return; }
       try {
         await updateDoc(doc(fs, 'casas', id), { membros: arrayUnion(user.uid), [`membrosInfo.${user.uid}`]: user.nome });
       } catch (e) {
-        throw new Error(`Não foi possível entrar. A casa pode já ter o máximo de ${APP.maxMembros} pessoas.`);
+        throw new Error(`Não foi possível entrar. Este almoxarifado pode já ter o máximo de ${APP.maxMembros} pessoas.`);
       }
-      await setDoc(doc(fs, 'usuarios', user.uid), { casaId: id, nome: user.nome, email: user.email });
-      ouvirCasa(id);
+      salvarAtiva(id); ouvirCasa(id);
     },
 
     salvarItem(dados, id) {
       const agora = Date.now();
       if (id) {
         updateDoc(doc(col('itens'), id), { ...dados, atualizadoEm: agora }).catch(erroSilencioso);
-        mov({ itemId: id, itemNome: dados.nome, tipo: 'edicao', texto: 'editou os dados do item' });
+        if (dados.nome) mov({ itemId: id, itemNome: dados.nome, tipo: 'edicao', texto: 'editou os dados do item' });
         return id;
       }
       const ref = doc(col('itens'));
@@ -186,9 +219,30 @@ export function createFirebaseStore(config) {
     },
 
     async sairDaCasa() {
-      await updateDoc(doc(fs, 'casas', casaId), { membros: arrayRemove(user.uid), [`membrosInfo.${user.uid}`]: deleteField() });
-      await setDoc(doc(fs, 'usuarios', user.uid), { casaId: null, nome: user.nome, email: user.email });
-      parar(); casaId = null; emit({ fase: 'sem-casa' });
+      const id = casaId;
+      pararCasa(); casaId = null;
+      await updateDoc(doc(fs, 'casas', id), { membros: arrayRemove(user.uid), [`membrosInfo.${user.uid}`]: deleteField() });
+      st.casas = st.casas.filter((c) => c.id !== id);
+      abrirOutra(id);
+    },
+
+    // Exclui o almoxarifado aberto com todo o conteúdo (só o criador, e só se estiver sozinho nele).
+    async excluirCasa() {
+      const id = casaId; const codigo = st.casa?.codigo;
+      pararCasa();
+      for (const nome of ['lotes', 'itens', 'movimentos']) {
+        const snap = await getDocs(collection(fs, 'casas', id, nome));
+        for (let i = 0; i < snap.docs.length; i += 400) {
+          const b = writeBatch(fs);
+          snap.docs.slice(i, i + 400).forEach((d) => b.delete(d.ref));
+          await b.commit();
+        }
+      }
+      if (codigo) await deleteDoc(doc(fs, 'convites', codigo)).catch(() => {});
+      await deleteDoc(doc(fs, 'casas', id));
+      casaId = null;
+      st.casas = st.casas.filter((c) => c.id !== id);
+      abrirOutra(id);
     },
   };
 }

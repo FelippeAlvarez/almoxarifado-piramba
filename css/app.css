@@ -207,3 +207,12 @@ input.marca { width: 24px; height: 24px; flex: none; accent-color: var(--acento)
 .previa-l span:nth-child(2) { flex: 1; min-width: 0; }
 .previa-l b { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .quad { width: 14px; height: 14px; border: 1.5px solid #8a96a1; border-radius: 3px; flex: none; }
+
+/* seletor de almoxarifado */
+.marca.seletor { color: #fff; text-align: left; width: 100%; border-radius: 10px; padding: 2px 4px; margin: -2px -4px; }
+.marca.seletor:active { background: rgba(255, 255, 255, .08); }
+.marca .seta-sel { display: inline; font-size: 12px; opacity: .8; margin-left: 4px; }
+.form-linha { display: flex; gap: 8px; }
+.form-linha .campo { flex: 1; min-width: 0; }
+.form-linha .campo.codigo { font-size: 17px; letter-spacing: 2px; }
+.sheet .lista .marcado { background: #f4faf8; }

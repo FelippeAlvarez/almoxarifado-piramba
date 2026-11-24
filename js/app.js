@@ -73,7 +73,7 @@ window.addEventListener('almox-erro', (ev) => {
 
 // ---------- estado ----------
 const S = {
-  fase: 'carregando', user: null, casa: null, itens: [], lotes: [], movimentos: [],
+  fase: 'carregando', user: null, casa: null, casas: [], itens: [], lotes: [], movimentos: [],
   view: 'painel', busca: '', cat: 'Todas', erro: '',
 };
 let store;
@@ -122,7 +122,7 @@ function render() {
   root.innerHTML = `
     ${store.modo === 'demo' ? '<div class="demo-bar">Modo demonstração — os dados ficam só neste aparelho</div>' : ''}
     <header class="topo">
-      <div class="marca"><img src="icons/icon-192.png" alt="" width="32" height="32"><div><strong>${esc(S.casa?.nome || APP.nome)}</strong><span>${esc(tituloView())}</span></div></div>
+      <button class="marca seletor" data-a="almoxarifados" aria-label="Trocar de almoxarifado"><img src="icons/icon-192.png" alt="" width="32" height="32"><div><strong>${esc(S.casa?.nome || APP.nome)} <span class="seta-sel">▾</span></strong><span>${esc(tituloView())}${S.casas.length > 1 ? ` · ${S.casas.length} almoxarifados` : ''}</span></div></button>
     </header>
     <main class="conteudo">${views[S.view](itens)}</main>
     <button class="fab" data-a="novo" ${S.view === 'ajustes' || S.view === 'compras' ? 'hidden' : ''} aria-label="Adicionar item">${ICON.mais}<span>Adicionar</span></button>
@@ -358,7 +358,12 @@ function viewAjustes() {
   const membros = Object.entries(c.membrosInfo || {});
   const demo = store.modo === 'demo';
   return `
-    <section><h2 class="secao">Almoxarifado</h2><div class="cartao form">
+    <section><h2 class="secao">Meus almoxarifados (${S.casas.length})</h2><div class="cartao lista">
+      <button class="linha" data-a="almoxarifados"><span class="linha-txt"><strong>Trocar, criar ou entrar com código</strong><small>${esc(S.casas.map((x) => x.nome).join(' · '))}</small></span><span class="seta">›</span></button>
+      ${souCriadorSozinho() ? '<button class="linha" data-a="excluir-casa"><span class="linha-txt"><strong class="txt-perigo">Excluir este almoxarifado</strong><small>Apaga itens, validades, lista e histórico deste almoxarifado</small></span></button>' : ''}
+      <button class="linha" data-a="sair-casa"><span class="linha-txt"><strong class="txt-perigo">Sair deste almoxarifado</strong><small>Os outros almoxarifados continuam disponíveis</small></span></button>
+    </div></section>
+    <section><h2 class="secao">Este almoxarifado</h2><div class="cartao form">
       <label>Nome<input id="aj-nome" class="campo" value="${esc(c.nome || '')}"></label>
       <div class="dupla">
         <label>Alerta urgente (dias)<input id="aj-crit" class="campo" type="number" min="1" max="60" value="${a.critico}"></label>
@@ -371,7 +376,7 @@ function viewAjustes() {
     <section><h2 class="secao">Pessoas (${membros.length} de ${APP.maxMembros})</h2><div class="cartao lista">
       ${membros.map(([u, n]) => `<div class="linha"><span class="avatar">${esc((n || '?')[0].toUpperCase())}</span><span class="linha-txt"><strong>${esc(n)}</strong><small>${u === S.user?.uid ? 'você' : u === c.criadoPor ? 'criador' : 'membro'}</small></span>${!demo && u !== S.user?.uid && S.user?.uid === c.criadoPor ? `<button class="btn pequeno perigo" data-a="remover-membro" data-id="${u}">Remover</button>` : ''}</div>`).join('')}
     </div>
-    ${demo ? '<p class="ajuda">No modo demonstração não há convites. Eles funcionam depois que o Firebase for configurado.</p>' : `
+    ${demo ? '<p class="ajuda">No modo demonstração não há convites. Eles funcionam na versão publicada.</p>' : `
     <div class="cartao convite"><span>Código de convite</span><strong class="mono">${esc(c.codigo || '')}</strong>
       <div class="acoes"><button class="btn whats" data-a="convidar">${ICON.zap} Convidar pelo WhatsApp</button><button class="btn pequeno" data-a="novo-codigo">Gerar novo código</button></div>
       <small>Quem tiver o código entra no almoxarifado (máximo de ${APP.maxMembros} pessoas). Gere um novo código se o atual vazar.</small></div>`}
@@ -383,7 +388,7 @@ function viewAjustes() {
     </div></section>
     <section><h2 class="secao">Conta</h2><div class="cartao lista">
       <div class="linha"><span class="linha-txt"><strong>${esc(S.user?.nome || '')}</strong><small>${esc(S.user?.email || '')}</small></span></div>
-      ${demo ? '' : '<button class="linha" data-a="sair-casa"><span class="linha-txt"><strong class="txt-perigo">Sair deste almoxarifado</strong></span></button><button class="linha" data-a="logout"><span class="linha-txt"><strong>Sair da conta</strong></span></button>'}
+      ${demo ? '' : '<button class="linha" data-a="logout"><span class="linha-txt"><strong>Sair da conta</strong></span></button>'}
     </div></section>
     <section><h2 class="secao">Sobre</h2><div class="cartao lista">
       <a class="linha" href="info.html#manual"><span class="linha-txt"><strong>Manual de uso</strong></span><span class="seta">›</span></a>
@@ -393,6 +398,24 @@ function viewAjustes() {
       <a class="linha" href="info.html#creditos"><span class="linha-txt"><strong>Créditos</strong></span><span class="seta">›</span></a>
     </div>
     <p class="versao">${esc(APP.nome)} · versão ${APP.versao} (${APP.dataVersao})<br>© 2026 ${esc(APP.autor)}. Todos os direitos reservados.</p></section>`;
+}
+
+// ---------- almoxarifados ----------
+const souCriadorSozinho = () => S.casa && S.casa.criadoPor === S.user?.uid && (S.casa.membros || []).length <= 1;
+
+function sheetAlmoxarifados() {
+  const demo = store.modo === 'demo';
+  abrirSheet(`${cabSheet('Meus almoxarifados', 'Cada almoxarifado tem estoque, lista de compras e pessoas próprios')}
+    <div class="cartao lista">${S.casas.map((c) => `<button class="linha ${c.id === S.casa?.id ? 'marcado' : ''}" data-a="abrir-casa" data-id="${esc(c.id)}">
+      <span class="avatar">${esc((c.nome || '?')[0].toUpperCase())}</span>
+      <span class="linha-txt"><strong>${esc(c.nome)}</strong><small>${plural(c.membros, 'pessoa', 'pessoas')}${c.criadoPor === S.user?.uid ? ' · criado por você' : ''}</small></span>
+      <span class="pick-st">${c.id === S.casa?.id ? '✓ aberto' : 'abrir'}</span></button>`).join('')}</div>
+    <h3 class="sub-secao">Criar novo almoxarifado</h3>
+    <form id="form-nova-casa" class="form-linha"><input id="nova-casa" class="campo" placeholder="Ex.: Casa de veraneio, Escritório" maxlength="60" autocomplete="off"><button class="btn primario" type="submit">Criar</button></form>
+    <h3 class="sub-secao">Entrar com código de convite</h3>
+    <form id="form-codigo" class="form-linha"><input id="codigo2" class="campo codigo" maxlength="9" placeholder="K7MP4QXA" autocomplete="off" autocapitalize="characters" ${demo ? 'disabled' : ''}><button class="btn" type="submit" ${demo ? 'disabled' : ''}>Entrar</button></form>
+    ${demo ? '<p class="ajuda">No modo demonstração não há convites.</p>' : '<p class="ajuda">Peça o código a quem já participa do almoxarifado (Ajustes › Convidar pelo WhatsApp).</p>'}
+    <p id="alm-erro" class="erro" hidden></p>`);
 }
 
 // ---------- folhas (modais) ----------
@@ -715,7 +738,21 @@ document.addEventListener('click', async (e) => {
       case 'exportar': exportar(); break;
       case 'historico': sheetHistorico(); break;
       case 'apagar-demo': confirmar('Restaurar exemplos?', 'Tudo o que foi alterado na demonstração será descartado e os itens simulados voltam ao estado inicial.', 'Restaurar', () => store.apagarDemo()); break;
-      case 'sair-casa': confirmar('Sair do almoxarifado?', 'Você deixará de ver os itens. Para voltar, precisará de um código de convite.', 'Sair', async () => { fecharSheet(); await store.sairDaCasa(); }); break;
+      case 'sair-casa': {
+        const ultimo = S.casa.criadoPor === S.user?.uid && (S.casa.membros || []).length <= 1;
+        confirmar(`Sair de “${esc(S.casa.nome)}”?`, ultimo
+          ? 'Você é a única pessoa neste almoxarifado: ao sair, ninguém mais terá acesso a ele. Para apagar de vez, use “Excluir este almoxarifado”.'
+          : 'Você deixará de ver os itens deste almoxarifado. Para voltar, precisará de um novo código de convite. Os outros almoxarifados não são afetados.',
+        'Sair', async () => { fecharSheet(); await store.sairDaCasa(); toast('Você saiu do almoxarifado'); });
+        break;
+      }
+      case 'excluir-casa':
+        confirmar(`Excluir “${esc(S.casa.nome)}”?`, 'Todos os itens, validades, lista de compras e histórico deste almoxarifado serão apagados definitivamente. Os outros almoxarifados não são afetados. Recomenda-se baixar antes a cópia de segurança.', 'Excluir definitivamente', async () => {
+          fecharSheet(); S.fase = 'carregando'; render(); await store.excluirCasa(); toast('Almoxarifado excluído');
+        });
+        break;
+      case 'almoxarifados': sheetAlmoxarifados(); break;
+      case 'abrir-casa': fecharSheet(); if (id !== S.casa?.id) { store.trocarCasa(id); toast('Almoxarifado aberto'); } break;
       case 'login': S.erro = ''; await store.login(); break;
       case 'logout': await store.logout(); break;
       case 'criar': S.erro = ''; S.fase = 'carregando'; render(); await store.criarCasa($('#nomecasa')?.value.trim()); break;
@@ -758,6 +795,18 @@ document.addEventListener('change', (e) => {
 });
 document.addEventListener('submit', (e) => {
   if (e.target.id === 'form-novo') salvarNovo(e);
+  else if (e.target.id === 'form-nova-casa' || e.target.id === 'form-codigo') {
+    e.preventDefault();
+    const err = $('#alm-erro'); err.hidden = true;
+    const nova = e.target.id === 'form-nova-casa';
+    const valor = (nova ? $('#nova-casa') : $('#codigo2')).value.trim();
+    if (!valor) { err.textContent = nova ? 'Dê um nome ao novo almoxarifado.' : 'Digite o código de convite.'; err.hidden = false; return; }
+    if (nova && S.casas.some((c) => norm(c.nome) === norm(valor))) { err.textContent = 'Você já tem um almoxarifado com esse nome.'; err.hidden = false; return; }
+    e.target.querySelectorAll('button,input').forEach((x) => { x.disabled = true; });
+    (nova ? store.criarCasa(valor) : store.entrarCasa(valor))
+      .then(() => { fecharSheet(); toast(nova ? `“${valor}” criado` : 'Você entrou no almoxarifado'); })
+      .catch((ex) => { err.textContent = traduzErro(ex); err.hidden = false; e.target.querySelectorAll('button,input').forEach((x) => { x.disabled = false; }); });
+  }
   else if (e.target.id === 'form-lista-novo') {
     e.preventDefault();
     const nome = $('#ln-nome').value.trim().replace(/\s+/g, ' '); const q = num($('#ln-qtd').value); const err = $('#ln-erro');
@@ -794,6 +843,10 @@ async function iniciar() {
     store = createFirebaseStore(firebaseConfig);
   }
   store.start((st) => {
+    if (st.casa && st.casa.id !== S._ultimaCasa) {
+      if (S._ultimaCasa) { S.view = 'painel'; S.cat = 'Todas'; S.busca = ''; if (sheet.open && S.sheetItem) fecharSheet(); }
+      S._ultimaCasa = st.casa.id;
+    }
     Object.assign(S, st);
     render();
     if (sheet.open && S.sheetItem) {
