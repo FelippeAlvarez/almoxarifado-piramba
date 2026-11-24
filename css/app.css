@@ -216,3 +216,10 @@ input.marca { width: 24px; height: 24px; flex: none; accent-color: var(--acento)
 .form-linha .campo { flex: 1; min-width: 0; }
 .form-linha .campo.codigo { font-size: 17px; letter-spacing: 2px; }
 .sheet .lista .marcado { background: #f4faf8; }
+
+/* compartilhar o aplicativo */
+.icone-linha { width: 34px; height: 34px; border-radius: 50%; background: #eef2f6; color: var(--marca-2); display: grid; place-items: center; flex: none; }
+.icone-linha svg { width: 18px; height: 18px; }
+.link-inline { color: var(--marca-2); font-size: inherit; text-decoration: none; }
+.link-box { padding: 12px 14px; font-size: 13.5px; word-break: break-all; color: var(--suave); }
+.acoes-sheet .btn.whats { margin: 0; width: auto; }

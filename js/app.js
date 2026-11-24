@@ -26,6 +26,7 @@ function textoPrazo(iso) {
 }
 
 const ICON = {
+  compartilhar: '<svg viewBox="0 0 24 24"><path d="M18 16.1c-.8 0-1.4.3-2 .8l-7.1-4.2c.1-.2.1-.5.1-.7s0-.5-.1-.7L16 7.2c.5.5 1.2.8 2 .8 1.7 0 3-1.3 3-3s-1.3-3-3-3-3 1.3-3 3c0 .2 0 .5.1.7L8 9.8C7.5 9.3 6.8 9 6 9c-1.7 0-3 1.3-3 3s1.3 3 3 3c.8 0 1.5-.3 2-.8l7.1 4.2c-.1.2-.1.4-.1.6 0 1.6 1.3 2.9 2.9 2.9s2.9-1.3 2.9-2.9-1.2-2.9-2.8-2.9z"/></svg>',
   painel: '<svg viewBox="0 0 24 24"><path d="M4 13h6V4H4zm0 7h6v-5H4zm10 0h6v-9h-6zm0-16v5h6V4z"/></svg>',
   estoque: '<svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4zm9-1.8L6.2 7.7 12 10.3l5.8-2.6zM5 9.2v6.5l6 2.7v-6.5zm8 9.2l6-2.7V9.2l-6 2.7z"/></svg>',
   compras: '<svg viewBox="0 0 24 24"><path d="M7 18a2 2 0 100 4 2 2 0 000-4zm10 0a2 2 0 100 4 2 2 0 000-4zM5.2 4l.6 2H21l-2.4 8.4a2 2 0 01-1.9 1.6H8.3a2 2 0 01-1.9-1.5L3.7 4H1V2h4a1 1 0 011 .8z"/></svg>',
@@ -147,7 +148,7 @@ const telaLogin = () => `
     <p class="sub">Controle de itens da casa: estoque, validades e compras, compartilhado entre a família.</p>
     <button class="btn primario grande" data-a="login">Entrar com Google</button>
     ${S.erro ? `<p class="erro">${esc(S.erro)}</p>` : ''}
-    <footer class="rodape-login">Versão ${APP.versao} · © 2026 ${esc(APP.autor)} · <a href="info.html#termos">Termos</a> · <a href="info.html#privacidade">Privacidade</a></footer>
+    <footer class="rodape-login">Versão ${APP.versao} · © 2026 ${esc(APP.autor)} · <a href="info.html#termos">Termos</a> · <a href="info.html#privacidade">Privacidade</a> · <button class="link-inline" data-a="compartilhar-app">Compartilhar</button></footer>
   </div>`;
 
 const telaSemCasa = () => `
@@ -391,6 +392,7 @@ function viewAjustes() {
       ${demo ? '' : '<button class="linha" data-a="logout"><span class="linha-txt"><strong>Sair da conta</strong></span></button>'}
     </div></section>
     <section><h2 class="secao">Sobre</h2><div class="cartao lista">
+      <button class="linha" data-a="compartilhar-app"><span class="icone-linha">${ICON.compartilhar}</span><span class="linha-txt"><strong>Compartilhar o aplicativo</strong><small>Envia só o link do app, sem dar acesso aos seus almoxarifados</small></span><span class="seta">›</span></button>
       <a class="linha" href="info.html#manual"><span class="linha-txt"><strong>Manual de uso</strong></span><span class="seta">›</span></a>
       <a class="linha" href="info.html#termos"><span class="linha-txt"><strong>Termos de uso</strong></span><span class="seta">›</span></a>
       <a class="linha" href="info.html#privacidade"><span class="linha-txt"><strong>Política de privacidade</strong></span><span class="seta">›</span></a>
@@ -398,6 +400,23 @@ function viewAjustes() {
       <a class="linha" href="info.html#creditos"><span class="linha-txt"><strong>Créditos</strong></span><span class="seta">›</span></a>
     </div>
     <p class="versao">${esc(APP.nome)} · versão ${APP.versao} (${APP.dataVersao})<br>© 2026 ${esc(APP.autor)}. Todos os direitos reservados.</p></section>`;
+}
+
+// ---------- compartilhar o aplicativo (só o link, sem dados) ----------
+const linkApp = () => location.origin + location.pathname.replace(/(index\.html|info\.html)$/, '');
+const textoConvite = () => `Conheça o ${APP.nome}: controle de estoque, validades e lista de compras da casa, para usar com a família no celular.`;
+async function compartilharApp() {
+  const url = linkApp();
+  if (navigator.share) {
+    try { await navigator.share({ title: APP.nome, text: textoConvite(), url }); return; } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  abrirSheet(`${cabSheet('Compartilhar o aplicativo', 'Envia só o link do app; os seus almoxarifados continuam privados')}
+    <div class="cartao link-box"><span class="mono">${esc(url)}</span></div>
+    <div class="acoes-sheet">
+      <a class="btn whats" href="https://wa.me/?text=${encodeURIComponent(textoConvite() + ' ' + url)}" target="_blank" rel="noopener">${ICON.zap} WhatsApp</a>
+      <button class="btn" data-a="copiar-link">Copiar link</button>
+    </div>
+    <p class="ajuda espaco">Quem receber o link cria os próprios almoxarifados. Para alguém participar de um almoxarifado seu, use o convite em Ajustes.</p>`);
 }
 
 // ---------- almoxarifados ----------
@@ -752,6 +771,11 @@ document.addEventListener('click', async (e) => {
         });
         break;
       case 'almoxarifados': sheetAlmoxarifados(); break;
+      case 'compartilhar-app': await compartilharApp(); break;
+      case 'copiar-link': {
+        try { await navigator.clipboard.writeText(linkApp()); toast('Link copiado'); } catch { toast('Não foi possível copiar. Copie o endereço exibido.'); }
+        break;
+      }
       case 'abrir-casa': fecharSheet(); if (id !== S.casa?.id) { store.trocarCasa(id); toast('Almoxarifado aberto'); } break;
       case 'login': S.erro = ''; await store.login(); break;
       case 'logout': await store.logout(); break;
